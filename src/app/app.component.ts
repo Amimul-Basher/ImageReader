@@ -7,6 +7,7 @@ import { delay } from 'rxjs/operators';
 import * as Tesseract from 'tesseract.js';
 
 
+
     
 @Component({
   selector: 'app-root',
@@ -20,6 +21,13 @@ export class AppComponent implements OnInit{
   worker?: Tesseract.Worker;
   imgFile?: string;
   title = 'ImageReader';
+
+  img : any;
+  w:any;
+  h:any;
+  canvas: any;
+  ctx: any;
+  // data: any;
   
   
   // This path used in recognize function as static input
@@ -60,11 +68,43 @@ export class AppComponent implements OnInit{
   }
 
   async recognizeImage(){
-    const result = await this.worker?.recognize(this.uploadForm.value.imgSrc);
+    this.imageProcessing();
+    //const result = await this.worker?.recognize(this.uploadForm.value.imgSrc);
+    
+    const result = await this.worker?.recognize(this.img.src);
     console.log(result);
     this.ocrResult = result?.data.text;
     //await this.worker?.terminate();
     this.findInformation(this.ocrResult);
+  }
+
+
+  imageProcessing(){
+    
+    this.img = new Image();
+    this.img.src = this.uploadForm.value.imgSrc;
+    console.log(this.img);
+    this.canvas = document.getElementById('canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.drawImage(this.img, 0, 0);
+    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const data = imageData.data;
+    for (var i = 0; i < data.length; i += 4) {
+        var count = (data[i] + data[i + 1] + data[i + 2]) ;
+        let avg = 0;
+        if (count > 450 ) avg = 255;
+        // else if(count > 255) avg = 127.5
+        // else avg = 255;
+
+        data[i]     = avg; // red
+        data[i + 1] = avg; // green
+        data[i + 2] = avg; // blue
+    }
+    this.ctx.putImageData(imageData, 0, 0);
+    this.img.src = this.canvas.toDataURL('image/jpg', 1);
+    
   }
 
     
@@ -74,38 +114,28 @@ export class AppComponent implements OnInit{
    
   onImageChange(e: any) {
     const reader = new FileReader();
+    this.img = new Image();
     
     if(e.target.files && e.target.files.length) {
       const [file] = e.target.files;
-      ////
-      console.log(file);
+      
       reader.readAsDataURL(file);
-      ////
     
       reader.onload = () => {
         this.imgFile = reader.result as string;
         this.uploadForm.patchValue({
           imgSrc: reader.result
-        });
-   
+        });   
       };
+      
     }
   }
-   
+  //revoked when the upload button is called
   async upload(){
-
-    
-
-
-
     this.recognizeImage();
-    // ////
-    // console.log(this.uploadForm.value.imgSrc);
-    // ////
-    // console.log(this.ocrResult)
   }
   
-
+  //To find the exact birth date, Name and ID no
   findInformation(result?: string){
     console.log("nothing is executing here");
     console.log(result);
